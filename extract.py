@@ -18,16 +18,19 @@ noEnglish = locDB.add_format({'bg_color': 'purple'})
 
 noTranslation = locDB.add_format({'bg_color': 'red'})
 
-
-# Generate languages list out of files in folder, also generate language headers.
+# Generate languages list out of files in folder, also generate language headers
 languageFiles = listdir('lang')
 languages = []
+
+sheet.write('A1', 'String Number', headers)
+sheet.write('B1', 'String ID', headers)
+
 
 for la in languageFiles:
     l = la.partition('.')[0]
     languages.append(l)
     # Headers in file
-    sheet.write(0, languages.index(l) + 1, l, headers)
+    sheet.write(0, languages.index(l) + 2, l, headers)
 
 # Freeze language header row
 
@@ -39,9 +42,15 @@ loc = {}
 # Pull English into loc (first, to find discrepancies)
 readerUS = open("lang\en_US.lang", 'r')
 
+stringNum = 1
+
 for line in readerUS:
     string = line.partition('=')
-    loc[string[0]] = {'en_US.lang': string[2]}
+    loc[string[0]] = {'num': stringNum, 'en_US.lang': string[2]}
+    if len(line) == 1:
+        loc['Empty-'+str(stringNum)] = {'num': stringNum}
+    stringNum += 1
+
 
 readerUS.close()
 
@@ -51,61 +60,51 @@ readerUS.close()
 langmE = deepcopy(languageFiles)
 langmE.remove('en_US.lang')
 
-# List with cells to format for missing English
-
-missingEnglish = []
-
-
 # now actual function
-
 for fileName in languageFiles:
     readerLoc = open("lang\\" + fileName, 'r')
 
     for line in readerLoc:
         string = line.partition('=')
-        s = {fileName: string[2].decode('utf-8').strip('\n')}
         if string[0] in loc:
-            loc[string[0]].update(s)
+            loc[string[0]].update({fileName: string[2].decode('utf-8').strip('\n')})
         else:
-            loc[string[0]] = s
+            loc[string[0]] = {'num': stringNum, fileName: string[2].decode('utf-8').strip('\n')}
+            stringNum += 1
             print "stringID " + string[0] + " present in " + fileName + " missing in source."
-
-            # try:
-            #     loc[string[0]].update(s)
-            # except KeyError:
-            #     print "stringID "+string[0]+" present in "+fileName+" missing in source."
-            # except:
-            #     print "Weird!", sys.exc_info()[0]
-            # else:
-            #     loc[string[0]] = s
 
     readerLoc.close()
 
 # Spit into Single File. FIGS currently,
 
-row = 1
+
 
 for stringID in loc:
-    sheet.write(row, 0, stringID)
-
-    # if 'en_US.lang' not in loc[stringID]:
-    #    sheet.set_row(row, None, noEnglish)
-
-    col = 1
-    for lang in languageFiles:
-        sheet.write(row, col, loc.get(stringID).get(lang))
-        col += 1
-    row += 1
+    sheet.write(loc[stringID].get('num'), 1, stringID)
+    sheet.write(loc[stringID].get('num'), 0, loc[stringID].get('num'))
+    col = 2
+    # Check if row is empty and hide it from view in spreadsheet.
+    if stringID.partition('-')[0] == 'Empty':
+        sheet.set_row(loc[stringID].get('num'), None, None, {'hidden': True})
+    else:
+        for lang in languageFiles:
+            sheet.write(loc[stringID].get('num'), col, loc.get(stringID).get(lang))
+            col += 1
 
 # Use conditional formatting to highlight all empty cells
 
-sheet.conditional_format(1, languageFiles.index('en_US.lang')+1, loc.__len__(), languageFiles.index('en_US.lang')+1,
+sheet.conditional_format(1, languageFiles.index('en_US.lang') + 2, loc.__len__(), languageFiles.index('en_US.lang') + 2,
                          {'type': 'blanks',
                           'format': noEnglish})
 
 sheet.conditional_format(1, 1, loc.__len__(), languages.__len__(), {'type': 'blanks',
                                                                     'format': noTranslation})
 
-sheet.set_column(0, loc.__len__(), 30)
+# Hide ID column and stretch all columns to make it look cleaner
+
+sheet.set_column(1, loc.__len__(), 30)
+
+sheet.set_column('A:A', None, None, {'hidden': True})
+
 
 locDB.close()
