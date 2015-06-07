@@ -93,11 +93,11 @@ for stringID in loc:
 
 # Use conditional formatting to highlight all empty cells
 
-sheet.conditional_format(1, languageFiles.index('en_US.lang') + 2, loc.__len__(), languageFiles.index('en_US.lang') + 2,
+sheet.conditional_format(1, languageFiles.index('en_US.lang') + 2, loc.__len__()-1, languageFiles.index('en_US.lang') + 2,
                          {'type': 'blanks',
                           'format': noEnglish})
 
-sheet.conditional_format(1, 1, loc.__len__(), languages.__len__(), {'type': 'blanks',
+sheet.conditional_format(1, 1, loc.__len__()-1, languages.__len__()-1, {'type': 'blanks',
                                                                     'format': noTranslation})
 
 # Hide ID column and stretch all columns to make it look cleaner
